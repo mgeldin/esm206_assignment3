@@ -1,0 +1,83 @@
+---
+title: "Assignment 3 Task 4: Purple Urchin Investigation at Naples Reef for 2010. Michelle Geldin"
+author: "Michelle Geldin"
+date: "10/29/2021"
+output:
+  html_document: 
+    theme: yeti
+    toc: yes
+---
+## Overview
+
+The "urchins.csv" data comes from Santa Barbara Coastal LTER and was accessed via the EDI Data Portal. The data describes the size frequency distribution of red and purple sea urchins at SBC LTER long-term kelp removal experiment sites. The diameter of the test (shell without spines) is recorded in centimeters to the nearest 0.5 cm for 50 red and 50 purple sea urchins located in 40 m x 2 m transects in each sampling plot.
+
+The data also includes experiments on two sample treatments for the two species of urchins at the testing sites for either leaving kelp intact at the site (the control) or removing kelp once per winter to help in re-colonization over the course of the year (distinguishing variable is the annual treatment).
+
+This report will compare the mean size of purple urchins in the control group and the annual group sections of Naples Reef in 2010. 
+
+### Data Citation
+
+Reed, D. 2020. SBC LTER: Reef: Long-term experiment: Kelp removal: Urchin size frequency distribution ver 20. Environmental Data Initiative. https://doi.org/10.6073/pasta/5a1e9ef03aa47bd2225c0bb98a02a63b. 
+
+## Setup
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE)
+library(tidyverse)
+library(here)
+library(janitor)
+library(lubridate)
+library(kableExtra)
+```
+
+## Read in the data
+
+```{r}
+urchins_data <- read_csv(here("data", "urchins.csv"))
+```
+
+## Data Wrangling: Clean the Data and Filter for only Purple Urchins at Naples site for 2010
+
+```{r}
+urchins_data_cleaner <- urchins_data %>%
+  clean_names() %>%
+  filter(site == "NAPL", common_name == "Purple Urchin") %>%
+  mutate(date = mdy(date)) %>%
+  mutate(year = year(date)) %>%
+  filter(year == 2010)
+  
+```
+
+## Data Visualization: QQ Plot for Distribution of Purple Urchins Data
+
+```{r}
+urchins_qq_plot <- ggplot(data = urchins_data_cleaner, aes(sample = size)) +
+  geom_qq() +
+  geom_qq_line() +
+  facet_wrap(~ treatment) +
+  labs(x = "Theoretical", y = "Sample", title = "Distribution of Purple Urchins at Naples Site in 2010 Sperated per Treatment")
+
+urchins_qq_plot
+```
+
+Figure caption: The qq plot's linear trend for both the control and annual groups mean that the distribution of sizes are normally distributed. There is a slight trend towards larger urchin sizes for the annual group judging off of the extension of the points towards the right. This insists that removing kelp once per year does have a positive impact on urchin size.
+
+## Summary Table: Mean, SD, and Sample Size per Treatment
+
+Table caption: The following table provides a comparison of mean, standard deviation, and sample size for both treatments.
+
+```{r}
+purple_urchins_stats <- urchins_data_cleaner %>%
+  group_by(treatment) %>%
+  summarize(mean_size = round(mean(size), 2),
+            sd_size = round(sd(size), 2),
+            sample_size = n())
+
+purple_urchins_stats %>%
+  kable(col.names = c("Treatment Type",
+                      "Mean Diameter (cm)",
+                      "Standard Deviation",
+                      "Sample Size (n)")) %>%
+  kable_styling(full_width = FALSE)
+```
+
